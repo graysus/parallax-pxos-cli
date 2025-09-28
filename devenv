@@ -1,0 +1,4 @@
+
+# Parallax is not installed on the host system
+export LD_LIBRARY_PATH="../pxinit/out/parallax"
+alias make="make CXXFLAGS='-L../pxinit/out/parallax -I../pxinit/include'"
