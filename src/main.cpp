@@ -8,10 +8,12 @@
 #include <filesystem>
 #include <libmount/libmount.h>
 #include <string>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <PxOSConfig.hpp>
 #include <replace.hpp>
 #include <vector>
+#include <PxDownload.hpp>
 
 typedef PxResult::Result<void>(*action_t)(std::vector<std::string> &additionalArgs);
 
@@ -87,17 +89,34 @@ PxResult::Result<void> cmd_update(std::vector<std::string> &extra_args) {
             exit(1);
         }
 
-        std::vector<std::string> toFetch = { "pxos-" + version + ".img" };
+        std::vector<std::string> toFetch = { "pxos-" + version + ".img", "pxos-" + version + ".img.sig" };
+        std::vector<std::string> toVerify = { "pxos-" + version + ".img.sig" };
+        
+        {
+            auto mkdir_res = PxFunction::wrap("mkdir", mkdir("/var/tmp/px-dl", 0644));
+            if (mkdir_res.eno != EEXIST)
+                PXASSERT(mkdir_res);
+        }
 
         PXASSERT(clear_fetch_files(toFetch));
-        for (auto &fetch : toFetch) {
-            if (system(("curl -#LfC - -o /var/tmp/"+fetch+" "+osconf.repo+"/"+fetch).c_str()) != 0) {
-                PxLog::log.error("Download failed! Exiting...");
-                exit(1);
+        {
+            PxDownload::Download dl;
+            for (auto &fetch : toFetch) {
+                auto sdl = dl.add(osconf.repo+"/"+fetch);
+                sdl->bindOutput("/var/tmp/px-dl/"+fetch);
+            }
+            PXASSERTM(dl.perform(), "download");
+        }
+
+        PxLog::log.info("Verifying signatures...");
+        for (auto &sig : toVerify) {
+            if (system(("gpg --homedir /etc/pxos-gpg --verify /var/tmp/px-dl/"+sig).c_str()) != 0) {
+                PxLog::log.error("Failed to match signature!");
+                return PxResult::Null;
             }
         }
 
-        PXASSERT(replace("/var/tmp/pxos-"+version+".img"));
+        PXASSERT(replace("/var/tmp/px-dl/pxos-"+version+".img"));
         PXASSERT(clear_fetch_files({}));
         PxLog::log.info("Finished update.");
     } else {

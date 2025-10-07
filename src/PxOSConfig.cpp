@@ -14,7 +14,7 @@ namespace PxOSConfig {
         DEFER(free_opposite, free(opposite));
 
         // Create a new filesystem
-        std::string cmd = "mkfs.ext4 -q " + (std::string)opposite;
+        std::string cmd = "mkfs.ext4 -qF " + (std::string)opposite;
         if (system(cmd.c_str()) != 0) {
             return PxResult::FResult("PxOSConfig::InitializeNew / mkfs", EINVAL);
         }

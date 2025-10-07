@@ -1,6 +1,6 @@
 CXXFLAGS=
 OUT=out/pxos
-ALL_CXXFLAGS=$(CXXFLAGS) -Iinclude/ -I/usr/include/parallax/ -lparallax -lpxinternal -lblkid -lmount
+ALL_CXXFLAGS=$(CXXFLAGS) -Iinclude/ -I/usr/include/parallax/ -lparallax -lpxinternal -lblkid -lmount -lcurl
 PREFIX?=/usr
 DESTDIR?=/
 
